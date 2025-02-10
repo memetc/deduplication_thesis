@@ -30,25 +30,43 @@ class ClusteringPipeline:
         self.leiden_clusterer = LeidenClustering(
             resolution=config["leiden"]["resolution"]
         )
-
+        
     def run_umap_hdbscan(self, data):
+        logging.info("Starting UMAP reduction for UMAP + HDBSCAN strategy.")
         embedding = self.umap_reducer.reduce(data)
+        logging.info("UMAP reduction completed. Embedding shape: %s", np.shape(embedding))
+        
+        logging.info("Starting HDBSCAN clustering on UMAP embedding.")
         labels, elapsed_time, num_clusters = self.hdbscan_clusterer.run(embedding)
+        logging.info("HDBSCAN clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
+        
         return {
             "labels": labels.tolist(),
             "time": elapsed_time,
             "num_clusters": num_clusters,
             "embedding": embedding.tolist()
         }
-
+    
     def run_sparse_hdbscan(self, data):
+        logging.info("Computing k-NN graph for sparse HDBSCAN strategy.")
         sparse_matrix = self.knn_graph.compute_graph(data)
+        logging.info("k-NN graph computed with %d nonzero edges.", sparse_matrix.nnz)
+        
+        logging.info("Starting sparse HDBSCAN clustering on k-NN graph.")
         labels, elapsed_time, num_clusters = self.sparse_hdbscan_clusterer.run(sparse_matrix)
+        logging.info("Sparse HDBSCAN clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
+        
         return {"labels": labels.tolist(), "time": elapsed_time, "num_clusters": num_clusters}
-
+    
     def run_leiden(self, data):
+        logging.info("Computing k-NN graph for Leiden clustering strategy.")
         sparse_matrix = self.knn_graph.compute_graph(data)
+        logging.info("k-NN graph computed with %d nonzero edges.", sparse_matrix.nnz)
+        
+        logging.info("Starting Leiden clustering on k-NN graph.")
         labels, elapsed_time, num_clusters = self.leiden_clusterer.run(sparse_matrix)
+        logging.info("Leiden clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
+        
         return {"labels": labels.tolist(), "time": elapsed_time, "num_clusters": num_clusters}
 
     def run_all(self, data):
