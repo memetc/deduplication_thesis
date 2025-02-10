@@ -29,10 +29,10 @@ def evaluate_clustering(true_labels, predicted_labels, exclude_noise=True):
 
     metrics = {
         "Adjusted_Rand_Index": adjusted_rand_score(true_labels, predicted_labels),
-        "Adjusted_Mutual_Info": adjusted_mutual_info_score(true_labels, predicted_labels),
-        "Homogeneity": homogeneity_score(true_labels, predicted_labels),
-        "Completeness": completeness_score(true_labels, predicted_labels),
-        "V_measure": v_measure_score(true_labels, predicted_labels),
-        "Fowlkes_Mallows": fowlkes_mallows_score(true_labels, predicted_labels)
+#        "Adjusted_Mutual_Info": adjusted_mutual_info_score(true_labels, predicted_labels),
+#        "Homogeneity": homogeneity_score(true_labels, predicted_labels),
+#        "Completeness": completeness_score(true_labels, predicted_labels),
+#        "V_measure": v_measure_score(true_labels, predicted_labels),
+#        "Fowlkes_Mallows": fowlkes_mallows_score(true_labels, predicted_labels)
     }
     return metrics

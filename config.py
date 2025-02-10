@@ -1,7 +1,7 @@
 config = {
     "data": {
-        "filename": "unmod_val.parquet",
-        "nrows": 500000,  # Optional: set to None if you want all rows
+        "filename": "/cmnfs/data/proteomics/Prosit_unmod/intensity/unmod_val.parquet",
+        "nrows": None,  # Optional: set to None if you want all rows
         "column_name": "intensities_raw"
     },
     "umap": {
