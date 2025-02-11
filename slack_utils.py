@@ -1,6 +1,7 @@
 import os
 import logging
 from slack_sdk import WebClient
+from dotenv import load_dotenv
 
 def send_slack_message(message, channel="reports", username="Reporter", token=None):
     """
@@ -30,9 +31,11 @@ def send_slack_message(message, channel="reports", username="Reporter", token=No
     Exception
         Any exception raised by the Slack API call.
     """
+    
+    load_dotenv()
     # Use token from argument or environment variable
     if token is None:
-        token = os.environ.get("SLACK_TOKEN")
+        token = os.getenv("SLACK_TOKEN")
         if token is None:
             raise ValueError("Slack token must be provided or set in the SLACK_TOKEN environment variable.")
     

@@ -1,5 +1,6 @@
 import json
 import logging
+import numpy as np
 from .data_loader import DataLoader
 from .umap_reducer import UMAPReducer
 from .clustering_algorithms import HDBSCANClustering, SparseHDBSCANClustering, LeidenClustering
