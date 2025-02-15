@@ -24,5 +24,9 @@ config = {
     },
     "leiden": {
         "resolution": 5.0
+    },
+    "sparse_dbscan": {
+        "eps": 0.5,
+        "min_samples": 5
     }
 }

@@ -33,7 +33,8 @@ def load_and_process_data(config):
     # List of columns to exclude from duplicate id assignment
     columns_to_exclude = [
         'raw_file', 'scan_number', 'masses_raw', 'intensities_raw',
-        'precursor_charge_onehot', 'andromeda_score', 'method_nbr'
+        'precursor_charge_onehot', 'andromeda_score', 'method_nbr',
+        'unmod_sequence', 'base_intensity', 'total_intensity'
     ]
     
     # Include all columns not in the exclusion list

@@ -3,8 +3,7 @@
 #SBATCH --job-name=clustering_pipeline
 #SBATCH --time=4-00:00:00
 #SBATCH --mem=250GB
-#SBATCH --partition=compms-gpu-a40
-#SBATCH --nodelist=compms-gpu-2.exbio.wzw.tum.de
+#SBATCH --nodelist=compms-cpu-1.exbio.wzw.tum.de
 #SBATCH --gres=gpu:1
 #SBATCH --output=outputs/clustering_pipeline_%j.out
 #SBATCH --error=outputs/clustering_pipeline_%j.err

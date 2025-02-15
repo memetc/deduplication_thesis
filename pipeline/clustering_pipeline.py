@@ -31,7 +31,11 @@ class ClusteringPipeline:
         self.leiden_clusterer = LeidenClustering(
             resolution=config["leiden"]["resolution"]
         )
-        
+        self.sparse_dbscan_clusterer = SparseDBSCANClustering(
+            eps=config["sparse_dbscan"]["eps"],
+            min_samples=config["sparse_dbscan"]["min_samples"]
+        )
+
     def run_umap_hdbscan(self, data):
         logging.info("Starting UMAP reduction for UMAP + HDBSCAN strategy.")
         embedding = self.umap_reducer.reduce(data)
@@ -69,6 +73,29 @@ class ClusteringPipeline:
         logging.info("Leiden clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
         
         return {"labels": labels.tolist(), "time": elapsed_time, "num_clusters": num_clusters}
+
+    def run_sparse_dbscan(self, data):
+        """
+        1. Compute the k-NN graph.
+        2. Run SparseDBSCANClustering.
+        3. Return a dict with labels, runtime, and number of clusters.
+        """
+        logging.info("Computing k-NN graph for sparse DBSCAN strategy.")
+        sparse_matrix = self.knn_graph.compute_graph(data)
+        
+        logging.info("k-NN graph computed with %d nonzero edges.", sparse_matrix.nnz)
+        
+        logging.info("Starting sparse DBSCAN clustering on k-NN graph.")
+        labels, elapsed_time, num_clusters = self.sparse_dbscan_clusterer.run(sparse_matrix)
+        
+        logging.info("Sparse DBSCAN clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
+        
+        # Return dictionary in the same format as run_sparse_hdbscan
+        return {
+            "labels": labels.tolist(),   # Convert NumPy array to list
+            "time": elapsed_time,
+            "num_clusters": num_clusters
+        }
 
     def run_all(self, data):
         results = {}
