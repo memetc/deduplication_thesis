@@ -1,6 +1,6 @@
 config = {
     "data": {
-        "filename": "/cmnfs/data/proteomics/Prosit_unmod/intensity/unmod_val.parquet",
+        "filename": "cmnfs/proj/prosit/Transformer/no_aug_no_mod_val.parquet",
         "nrows": None,  # Optional: set to None if you want all rows
         "column_name": "intensities_raw"
     },

@@ -1,7 +1,10 @@
+
 import os
 import glob
 import logging
 import pandas as pd
+import traceback
+from typing import List
 from preprocess_utils import assign_duplicate_ids, drop_hcd_itms_rows, keep_highest_andromeda_score
 from slack_utils import send_slack_message
 
@@ -29,21 +32,21 @@ def tidy_up_prosit_data(parquet_files: List[str]) -> None:
 	    'base_intensity',
 	    'total_intensity'
 	]
-	
-    columns_to_include = [col for col in df.columns if col not in columns_to_exclude]
-
+		
     for file_path in parquet_files:
         logger.info(f"Reading file: {file_path}")
         df = pd.read_parquet(file_path, engine="pyarrow")
         logger.info(f"Initial length: {len(df)}")
-
+        
+        send_slack_message(f'{df.columns}')
+        columns_to_include = [col for col in df.columns if col not in columns_to_exclude]
         # 1) Assign duplicate IDs
         df = assign_duplicate_ids(df, columns_to_include)
         logger.info(f"After assign_duplicate_ids: {len(df)}")
-
+        send_slack_message(f'{df.columns}')
         # 2) Drop HCD ITMS rows
-        df = drop_hcd_itms_rows(df)
-        logger.info(f"After drop_hcd_itms_rows: {len(df)}")
+        #df = drop_hcd_itms_rows(df)
+        #logger.info(f"After drop_hcd_itms_rows: {len(df)}")
 
         # 3) Keep highest Andromeda score
         df = keep_highest_andromeda_score(df)
@@ -53,8 +56,8 @@ def tidy_up_prosit_data(parquet_files: List[str]) -> None:
         output_file_path = file_path.replace('.parquet', '_deduplicated_simple.parquet')
         df.to_parquet(output_file_path, engine="pyarrow")
         logger.info(f"Saved deduplicated file: {output_file_path} (length: {len(df)})\n")
-	message = f"Saved deduplicated file: {output_file_path} (length: {len(df)})\n"
-	send_slack_message(message)
+        message = f"Saved deduplicated file: {output_file_path} (length: {len(df)})\n"
+        send_slack_message(message)
 
 if __name__ == "__main__":
     try:

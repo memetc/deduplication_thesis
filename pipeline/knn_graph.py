@@ -2,6 +2,7 @@ import numpy as np
 import faiss
 import scipy.sparse as sp
 import logging
+import os
 
 class KNNGraph:
     def __init__(self, k=50, use_sqrt=True, save_filename="knn_graph.npz"):
@@ -37,4 +38,4 @@ class KNNGraph:
         sp.save_npz(self.save_filename, sparse_matrix)
         logging.info(f"Sparse k-NN graph saved to '{self.save_filename}'.")
 
-	return sparse_matrix
+        return sparse_matrix
