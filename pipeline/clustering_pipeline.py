@@ -1,11 +1,12 @@
 import json
 import logging
 import numpy as np
+import time
 from .data_loader import DataLoader
 from .umap_reducer import UMAPReducer
-from .clustering_algorithms import HDBSCANClustering, SparseHDBSCANClustering, SparseDBSCANClustering, LeidenClustering
+from .clustering_algorithms import HDBSCANClustering, SparseHDBSCANClustering, DBSCANClustering, LeidenClustering
 from .knn_graph import KNNGraph
-
+from .utils import save_embedding
 class ClusteringPipeline:
     def __init__(self, config):
         self.config = config
@@ -31,14 +32,16 @@ class ClusteringPipeline:
         self.leiden_clusterer = LeidenClustering(
             resolution=config["leiden"]["resolution"]
         )
-        self.sparse_dbscan_clusterer = SparseDBSCANClustering(
+        self.dbscan_clusterer = DBSCANClustering(
             eps=config["sparse_dbscan"]["eps"],
-            min_samples=config["sparse_dbscan"]["min_samples"]
+            min_samples=config["sparse_dbscan"]["min_samples"],
+            metric="euclidean"
         )
 
     def run_umap_hdbscan(self, data):
         logging.info("Starting UMAP reduction for UMAP + HDBSCAN strategy.")
         embedding = self.umap_reducer.reduce(data)
+        self.umap_reducer.save("umap_model.joblib")
         logging.info("UMAP reduction completed. Embedding shape: %s", np.shape(embedding))
         
         logging.info("Starting HDBSCAN clustering on UMAP embedding.")
@@ -58,7 +61,7 @@ class ClusteringPipeline:
         logging.info("k-NN graph computed with %d nonzero edges.", sparse_matrix.nnz)
         
         logging.info("Starting sparse HDBSCAN clustering on k-NN graph.")
-        labels, elapsed_time, num_clusters = self.sparse_hdbscan_clusterer.run(sparse_matrix)
+        labels, elapsed_time, num_clusters = self.dbscan_clusterer.run(sparse_matrix)
         logging.info("Sparse HDBSCAN clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
         
         return {"labels": labels.tolist(), "time": elapsed_time, "num_clusters": num_clusters}
@@ -86,7 +89,7 @@ class ClusteringPipeline:
         logging.info("k-NN graph computed with %d nonzero edges.", sparse_matrix.nnz)
         
         logging.info("Starting sparse DBSCAN clustering on k-NN graph.")
-        labels, elapsed_time, num_clusters = self.sparse_dbscan_clusterer.run(sparse_matrix)
+        labels, elapsed_time, num_clusters = self.dbscan_clusterer.run(sparse_matrix)
         
         logging.info("Sparse DBSCAN clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
         
@@ -96,6 +99,31 @@ class ClusteringPipeline:
             "time": elapsed_time,
             "num_clusters": num_clusters
         }
+
+    def run_umap_dbscan(self, data):
+        """
+        1. Apply UMAP dimensionality reduction.
+        2. Run DBSCAN on the resulting embedding.
+        3. Return a dict with labels, runtime, number of clusters, and embedding.
+        """
+        logging.info("Starting UMAP reduction for UMAP + DBSCAN strategy.")
+        embedding = self.umap_reducer.reduce(data)
+        save_embedding(embedding, self.config)
+        self.umap_reducer.save(f"umap_model_{int(time.time())}.joblib")
+
+        logging.info("UMAP reduction completed. Embedding shape: %s", np.shape(embedding))
+
+        logging.info("Starting DBSCAN clustering on UMAP embedding.")
+        labels, elapsed_time, num_clusters = self.dbscan_clusterer.run(embedding)
+        logging.info("DBSCAN clustering completed: %d clusters found in %.2f seconds.", num_clusters, elapsed_time)
+
+        return {
+            "labels": labels.tolist(),  # Convert NumPy array to list
+            "time": elapsed_time,
+            "num_clusters": num_clusters,
+            "embedding": embedding.tolist()  # Optional: include the UMAP embedding
+        }
+
 
     def run_all(self, data):
         results = {}

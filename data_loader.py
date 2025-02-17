@@ -22,7 +22,7 @@ def load_and_process_data(config):
     # Get filename and number of rows from the configuration
     filename = config["data"]["filename"]
     nrows = config["data"].get("nrows", None)
-    
+    print(f'Data load from {filename} is started')    
     # Read the parquet file
     df = pd.read_parquet(filename, engine="pyarrow")
     
@@ -44,3 +44,5 @@ def load_and_process_data(config):
     df_processed = assign_duplicate_ids(df, columns_to_include)
     
     return df_processed
+
+
