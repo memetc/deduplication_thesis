@@ -4,7 +4,8 @@ import logging
 import json
 import traceback
 import numpy as np
-import time 
+import time
+
 from config import config
 from pipeline.data_loader import DataLoader
 from pipeline.clustering_pipeline import ClusteringPipeline
@@ -16,25 +17,30 @@ from slack_utils import send_slack_message
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 
 def main():
-# --- Notify Slack that the run has started ---
-    start_message = "UMAP+HDBSCAN clustering run has started."
+    # --- Notify Slack that the run has started ---
+    start_message = "UMAP+DBSCAN subclustering run has started."
     send_slack_message(start_message)
     logging.info("Sent Slack notification: %s", start_message)
     
-# --- Data Preparation ---
+    # --- Data Preparation ---
     df_test = load_and_process_data(config)
     logging.info("Loaded DataFrame with %d rows", len(df_test))
     
-    # Extract extra columns needed for evaluation: raw_file, scan_number, duplicate_id
+    # Extract extra columns needed for evaluation
     eval_info = df_test[['raw_file', 'scan_number', 'duplicate_id']].copy()
     
     logging.info("Loading data from DataFrame...")
     data_array = DataLoader(column_name=config["data"]["column_name"]).load_data(df_test)
     logging.info(f"Data shape: {data_array.shape}")
     
-    # --- Run UMAP + HDBSCAN Strategy ---
+    # --- Run UMAP + DBSCAN (with subclustering) ---
     pipeline = ClusteringPipeline(config)
-    result = pipeline.run_umap_hdbscan(data_array)
+    # Note: Make sure your ClusteringPipeline class has this method implemented.
+    result = pipeline.run_umap_dbscan_with_subclustering(data_array)
+    
+    # If 'final_labels' is where your clustering IDs reside, but you want the rest of the
+    # script (evaluation, saving) to treat them as "labels", just map it here:
+    result["labels"] = result["final_labels"]
     
     # Append extra columns for evaluation.
     result["raw_file"] = eval_info["raw_file"].tolist()
@@ -46,10 +52,9 @@ def main():
     last_filename_part = filename_parts[-1].split('.')[0]
 
     # Save results to file
-    out_filename = f"results/umap_hdbscan_{last_filename_part}_{int(time.time())}.json"
-    pipeline.save_results(result, out_filename)
-    logging.info(f"Result saved to {out_filename}")
-
+    pipeline.save_results(result, f"results/umap_dbscan_subclustering_{last_filename_part}_{int(time.time())}.json")
+    logging.info(f"Result saved to umap_dbscan_subclustering_{last_filename_part}_{int(time.time())}.json")
+    
     # --- Evaluation ---
     true_labels = eval_info["duplicate_id"].values
     predicted_labels = np.array(result["labels"])
@@ -58,7 +63,7 @@ def main():
     
     # --- Send Slack Message with Evaluation Metrics ---
     message = (
-        "UMAP+HDBSCAN clustering completed successfully.\n"
+        "UMAP+DBSCAN (with subclustering) completed successfully.\n"
         "Evaluation metrics:\n" + json.dumps(eval_metrics, indent=2)
     )
     send_slack_message(message)
@@ -69,7 +74,7 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         error_message = (
-            "UMAP+HDBSCAN clustering pipeline encountered an error:\n" +
+            "UMAP+DBSCAN subclustering pipeline encountered an error:\n" +
             str(e) + "\n" + traceback.format_exc()
         )
         logging.error(error_message)

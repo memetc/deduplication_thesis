@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --ntasks=1
-#SBATCH --job-name=clustering_pipeline
+#SBATCH --job-name=dedup_data
 #SBATCH --time=4-00:00:00
 #SBATCH --mem=100GB
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=shared-cpu
-#SBATCH --output=outputs/clustering_pipeline_%j.out
-#SBATCH --error=outputs/clustering_pipeline_%j.err
+#SBATCH --output=outputs/dedup_data%j.out
+#SBATCH --error=outputs/dedup_data%j.err
 
 # Load conda environment
 source /cmnfs/home/students/m.celimli/notebooks/conda.sh
@@ -21,4 +21,4 @@ PY_SCRIPT=${1:-main.py}
 echo "Running clustering pipeline using ${PY_SCRIPT}"
 
 # Run the specified Python script using srun
-srun python ${PY_SCRIPT}
+srun python deduplicate_data.py

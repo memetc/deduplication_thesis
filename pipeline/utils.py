@@ -19,9 +19,13 @@ def save_embedding(embedding, config):
     # Constructing the new filename
     new_filename = f"{last_filename_part}_{nrows}_{embedding_second_dimension}.npy"
     
-    # Saving the embedding vector
+    # Saving the embedding vector only if the file does not exist
     embedding_filepath = os.path.join(embeddings_dir, new_filename)
-    np.save(embedding_filepath, embedding)
-
-    print(f"Embedding vector saved successfully at: {embedding_filepath}")
-
+    
+    if not os.path.exists(embedding_filepath):
+        np.save(embedding_filepath, embedding)
+        print(f"Embedding vector saved successfully at: {embedding_filepath}")
+    else:
+        print(f"File already exists at: {embedding_filepath}")
+    
+    return embedding_filepath

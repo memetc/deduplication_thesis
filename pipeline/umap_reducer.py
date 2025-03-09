@@ -1,9 +1,13 @@
 import os
+import json
 import joblib
 import umap.umap_ as umap
+import umap.plot
+import numpy as np
+import logging
 
 class UMAPReducer:
-    def __init__(self, n_components=2, n_neighbors=15, min_dist=0.1, metric="cosine"):
+    def __init__(self, n_components=2, n_neighbors=15, min_dist=0.1, metric="cosine", embedding_file=None):
         """
         Initialize the UMAP reducer.
 
@@ -17,6 +21,7 @@ class UMAPReducer:
         self.n_neighbors = n_neighbors
         self.min_dist = min_dist
         self.metric = metric
+        self.embedding_file = embedding_file
         # Create a UMAP reducer instance (not yet fit to data).
         self.reducer = umap.UMAP(
             n_neighbors=self.n_neighbors,
@@ -40,14 +45,17 @@ class UMAPReducer:
         model_path = "umap_model.joblib"
 
         # If there's a saved model, load and transform.
-        if os.path.exists(model_path):
-            self.reducer = joblib.load(model_path)
-            embedding = self.reducer.transform(data)
-            print(f"Loaded existing UMAP model from '{model_path}' and transformed data.")
+        # if os.path.exists(model_path):
+        #     self.reducer = joblib.load(model_path)
+        #     embedding = self.reducer.transform(data)
+        #     print(f"Loaded existing UMAP model from '{model_path}' and transformed data.")
+        if self.embedding_file:
+            embedding = np.load(self.embedding_file)
+            logging.info(f"Loaded existing UMAP embedding from '{self.embedding_file}'")
         else:
             # Fit-transform a new model on the data.
             embedding = self.reducer.fit_transform(data)
-            print("No existing UMAP model found. Fit a new model and performed reduction.")
+            logging.info("No existing UMAP model found. Fit a new model and performed reduction.")
 
         return embedding
 
@@ -59,16 +67,18 @@ class UMAPReducer:
             filename (str): Path to the file where the model will be saved.
         """
         joblib.dump(self.reducer, filename)
-        print(f"UMAP model saved to '{filename}'")
+        logging.info(f"UMAP model saved to '{filename}'")
 
-    def plot_embedding(self, labels=None, show=True):
+    
+    def plot_embedding(self, labels=None, show=True, save_path=None):
         """
         Plot the points from the fitted UMAP reducer using UMAP's built-in plotting.
         This requires installing the plotting dependencies: pip install umap-learn[plot]
-
+    
         Args:
             labels (array-like, optional): Labels to color the points (e.g., cluster labels).
             show (bool): Whether to display the plot immediately.
+            save_path (str, optional): If provided, the plot will be saved to the given path.
         """
         try:
             import umap.plot
@@ -76,8 +86,14 @@ class UMAPReducer:
             raise ImportError(
                 "UMAP plotting is not installed. Install with: pip install umap-learn[plot]"
             )
-
+    
         # `umap.plot.points` uses the UMAP reducer directly.
         p = umap.plot.points(self.reducer, labels=labels)
+    
+        if save_path:
+            # Save the plot to the given path
+            p.save(save_path)
+    
         if show:
             umap.plot.show(p)
+
