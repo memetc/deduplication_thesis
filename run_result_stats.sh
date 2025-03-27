@@ -2,7 +2,7 @@
 #SBATCH --ntasks=1
 #SBATCH --job-name=stats
 #SBATCH --time=4-00:00:00
-#SBATCH --mem=100GB
+#SBATCH --mem=150GB
 #SBATCH --cpus-per-task=32
 #SBATCH --partition=shared-cpu
 #SBATCH --output=outputs/stats%j.out

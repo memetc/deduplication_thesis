@@ -20,6 +20,35 @@ ALPHABET["C[UNIMOD:4]"] = 2
 ALPHABET["M[UNIMOD:35]"] = len(ALPHABET) + 1
 
 
+def get_intermediate_embeddings(config, project_name, dataset):
+    with wandb.init(config=config, project=project_name, dir="/cmnfs/proj/prosit/dedup/") as _:
+        config = dict(wandb.config)
+        model = load_model(config["saved_best_weights"], compile=False)
+
+        # Explicitly create input tensors matching your model
+        in_sequence = tf.keras.Input(shape=(30,), name='modified_sequence')
+        in_collision_energy = tf.keras.Input(shape=(1,), name='collision_energy_aligned_normed')
+        in_precursor_charge = tf.keras.Input(shape=(6,), name='precursor_charge_onehot')
+        in_fragm_method = tf.keras.Input(shape=(1,), name='method_nbr')
+
+        inputs = {
+            "modified_sequence": in_sequence,
+            "collision_energy_aligned_normed": in_collision_energy,
+            "precursor_charge_onehot": in_precursor_charge,
+            "method_nbr": in_fragm_method,
+        }
+
+        # Explicitly call the model with return_intermediate=True via a Lambda wrapper
+        intermediate_output = tf.keras.layers.Lambda(
+            lambda x: model(x, return_intermediate=True)
+        )(inputs)
+
+        intermediate_model = tf.keras.Model(inputs=inputs, outputs=intermediate_output)
+
+        embeddings = intermediate_model.predict(dataset, batch_size=config["batch_size"])
+
+        return embeddings
+
 
 def extract_embeddings(config, train_data, project_name, layer_name="transformer_encoder_1"):
     """
@@ -39,8 +68,6 @@ def extract_embeddings(config, train_data, project_name, layer_name="transformer
     with wandb.init(config=config, project=project_name,  dir="/cmnfs/proj/prosit/dedup/") as _:
         config = wandb.config
         config = dict(wandb.config)
-        print(config)
-        print("____________")
         assert "data_source" in config
         assert "train" in config["data_source"]
         model = load_model(config["saved_best_weights"], compile=False)
@@ -122,11 +149,14 @@ if __name__ == "__main__":
 
 
     train_data, int_data = get_proteometools_data(config)
-    modal_embeddings = extract_embeddings(config, train_data, "transformer-baseline-deduplication", 'transformer_encoder_1')
-    np.save("embeddings/train_dedup_raw_embeddings_from_model_pca2.npy", modal_embeddings)
+    # modal_embeddings = get_intermediate_embeddings(config, "transformer-baseline-deduplication", train_data, 'transformer_encoder')
+    modal_embeddings = get_intermediate_embeddings(config, "transformer-baseline-deduplication", train_data)
+
+    # modal_embeddings = extract_embeddings(config, train_data, "transformer-baseline-deduplication", 'transformer_encoder_1')
+    np.save("embeddings/train_dedup_all_embeddings_from_model_refactored_v2.npy", modal_embeddings)
 
 
-    embedding_path = 'embeddings/train_dedup_raw_embeddings_from_model_pca2.npy'
+    embedding_path = 'embeddings/train_dedup_all_embeddings_from_model_refactored_v2.npy'
     modal_embeddings = np.load(embedding_path)
     modal_embeddings_2d = umap_reducer.reduce(modal_embeddings)
-    np.save("embeddings/train_dedup_embeddings_from_model_2_euclidean.npy", modal_embeddings_2d)
+    np.save("embeddings/embeddings_2d_refactored_v2_all.npy", modal_embeddings_2d)

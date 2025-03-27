@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import time
 import hdbscan
+import pickle
 
 from .data_loader import DataLoader
 from .umap_reducer import UMAPReducer
@@ -203,6 +204,8 @@ class ClusteringPipeline:
                 - 'num_clusters': The final number of clusters after subclustering.
                 - 'embedding': The UMAP embedding (optional).
         """
+        subclustering_eps = self.config["sparse_dbscan"]["subclustering_eps"] if self.config["sparse_dbscan"]["subclustering_eps"] is not None else subclustering_eps
+        subclustering_min_samples = self.config["sparse_dbscan"]["subclustering_min_samples"] if self.config["sparse_dbscan"]["subclustering_min_samples"] is not None else subclustering_min_samples
 
         logging.info("Starting UMAP reduction.")
         start_time = time.time()
@@ -346,6 +349,10 @@ class ClusteringPipeline:
                 - 'embedding': The UMAP embedding (optionally returned).
                 - 'umap_model_file': Path to the saved UMAP model file (if applicable).
         """
+        min_desired_clusters = self.config["hdbscan"]["min_desired_clusters"] if self.config["hdbscan"]["min_desired_clusters"] is not None else min_desired_clusters
+        subclustering_min_cluster_size = self.config["hdbscan"]["subclustering_min_cluster_size"] if self.config["hdbscan"]["subclustering_min_cluster_size"] is not None else subclustering_min_cluster_size
+        subclustering_cluster_selection_epsilon = self.config["hdbscan"]["subclustering_cluster_selection_epsilon"] if self.config["hdbscan"]["subclustering_cluster_selection_epsilon"] is not None else subclustering_cluster_selection_epsilon
+
         # --------------------------------------------------
         # 1. UMAP Reduction
         # --------------------------------------------------
@@ -412,7 +419,7 @@ class ClusteringPipeline:
                     min_cluster_size=subclustering_min_cluster_size,
                     min_samples=subclustering_min_samples,
                     metric='euclidean',
-                    cluster_selection_epsilon=0.1,
+                    cluster_selection_epsilon=subclustering_cluster_selection_epsilon,
                     cluster_selection_method='eom'
                 )
                 sub_labels = sub_clusterer.fit_predict(sub_embedding)
@@ -451,8 +458,6 @@ class ClusteringPipeline:
             "embedding": embedding.tolist(),
             "umap_model_file": umap_model_file
         }
-
-
 
 
     def run_umap_hdbscan_with_subclustering_loop(
@@ -657,7 +662,8 @@ class ClusteringPipeline:
         results["leiden"] = self.run_leiden(data)
         return results
 
+        
     def save_results(self, results, file_path):
-        with open(file_path, "w") as f:
-            json.dump({"config": self.config, "results": results}, f, indent=4)
+        with open(file_path, "wb") as f:
+            pickle.dump({"config": self.config, "results": results}, f)
         logging.info(f"Results saved to {file_path}")

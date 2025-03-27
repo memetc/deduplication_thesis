@@ -85,7 +85,7 @@ def main():
     # -----------------------------
     # 1. Configuration / Paths
     # -----------------------------
-    embedding_path = '/cmnfs/home/students/m.celimli/clustering/deduplication_thesis/embeddings/train_dedup_embeddings_from_model_2_euclidean.npy'
+    embedding_path = '/cmnfs/home/students/m.celimli/clustering/deduplication_thesis/embeddings/embeddings_2d_refactored_v2_all.npy'
     dedup_train_filepath = '/cmnfs/home/students/m.celimli/clustering/deduplication_thesis/data/no_aug_no_mod_train_dedup.parquet'
     plots_root_dir = '/cmnfs/home/students/m.celimli/clustering/deduplication_thesis/plots'
 

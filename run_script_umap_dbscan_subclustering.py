@@ -2,6 +2,7 @@
 import os
 import logging
 import json
+import pickle
 import traceback
 import numpy as np
 import time
@@ -43,17 +44,19 @@ def main():
     result["labels"] = result["final_labels"]
     
     # Append extra columns for evaluation.
-    result["raw_file"] = eval_info["raw_file"].tolist()
-    result["scan_number"] = eval_info["scan_number"].tolist()
-    result["duplicate_id"] = eval_info["duplicate_id"].tolist()
+    # result["raw_file"] = eval_info["raw_file"].tolist()
+    # result["scan_number"] = eval_info["scan_number"].tolist()
+    # result["duplicate_id"] = eval_info["duplicate_id"].tolist()
 
     filename = config['data']['filename']
     filename_parts = filename.split('/')
     last_filename_part = filename_parts[-1].split('.')[0]
 
     # Save results to file
-    pipeline.save_results(result, f"results/umap_dbscan_subclustering_{last_filename_part}_{int(time.time())}.json")
-    logging.info(f"Result saved to umap_dbscan_subclustering_{last_filename_part}_{int(time.time())}.json")
+    out_filename = f"results/umap_dbscan_subclustering_{last_filename_part}_{int(time.time())}.pkl"
+
+    pipeline.save_results(result, out_filename)
+    logging.info(f"Result saved to {out_filename}")
     
     # --- Evaluation ---
     true_labels = eval_info["duplicate_id"].values

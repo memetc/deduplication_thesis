@@ -16,18 +16,18 @@ def main():
         consolidated_results = {}
 
     # 2) Gather the new JSON files in the directory
-    json_file_paths = [
+    pickle_file_paths = [
         os.path.join(root_path, f)
         for f in os.listdir(root_path)
-        if f.endswith(".json") and f != "consolidated_results.json"
+        if f.endswith(".pkl") and f != "consolidated_results.json"
     ]
 
     # 3) Convert the keys that are already in consolidated_results to a set, 
     #    so we know which filenames are already processed
-    processed_files = set(consolidated_results.keys())
+    processed_files = {record['pkl_file'] for record in consolidated_results.values() if 'pkl_file' in record}
 
     # 4) Loop through each JSON path, skip if already processed
-    for idx, json_path in enumerate(json_file_paths, start=1):
+    for idx, json_path in enumerate(pickle_file_paths, start=1):
         filename = os.path.basename(json_path)
         
         if filename in processed_files:

@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import json
+import pickle
 import os
 import logging
 import matplotlib.pyplot as plt
@@ -15,6 +16,48 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 
+def filter_by_cluster_and_sequence_ratio(
+    df: pd.DataFrame,
+    labels: np.ndarray,
+    ratio: float = 0.9,
+    random_state: int = 42,
+    exclude_noise: bool = True
+) -> (pd.DataFrame, np.ndarray):
+    """
+    Filters (subsamples) a specified ratio of rows from each cluster and modified_sequence combination in a DataFrame.
+    Returns the filtered DataFrame and a NumPy array of the corresponding cluster labels.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to filter. Must have the same length as labels.
+        labels (np.ndarray): Cluster labels for each row in df.
+        ratio (float): Fraction of rows to keep from each group (0 < ratio <= 1).
+        random_state (int): Seed for reproducible sampling.
+        exclude_noise (bool): If True, exclude cluster -1 (i.e., noise in DBSCAN) from the final result.
+
+    Returns:
+        filtered_df (pd.DataFrame): The subsampled DataFrame.
+        filtered_labels (np.ndarray): The corresponding cluster labels for the subsampled rows.
+    """
+    if len(df) != len(labels):
+        raise ValueError("DataFrame and labels must have the same length.")
+
+    # Convert labels to a Series so we can group conveniently.
+    labels_series = pd.Series(labels, name="_cluster_label", index=df.index)
+    df_labeled = df.assign(_cluster_label=labels_series)
+
+    # Optionally exclude noise if the label is -1.
+    if exclude_noise:
+        df_labeled = df_labeled[df_labeled["_cluster_label"] != -1]
+
+    # Group by both cluster label and modified_sequence, then sample the specified fraction.
+    grouped = df_labeled.groupby(["_cluster_label", "modified_sequence"], group_keys=False)
+    filtered_df = grouped.apply(lambda x: x.sample(frac=ratio, random_state=random_state)).reset_index(drop=True)
+
+    # Extract the (subsampled) labels and drop the temporary column.
+    filtered_labels = filtered_df["_cluster_label"].values
+    filtered_df = filtered_df.drop(columns="_cluster_label")
+
+    return filtered_df, filtered_labels
 
 def filter_by_cluster_ratio(
     df: pd.DataFrame,
@@ -97,6 +140,48 @@ def average_group_entropy(df, sequence_col='modified_sequence', label_col='clust
 
     return weighted_entropy_sum
 
+def plot_cluster_counts_per_sequence(
+    df, 
+    data_name="data",
+    result_index=1,
+    sequence_col='modified_sequence',
+    cluster_col='cluster_label'
+):
+    """
+    Create and save a histogram of the number of distinct clusters in each sequence group.
+    The figure is saved under /cmnfs/home/students/m.celimli/clustering/deduplication_thesis/results/images
+    with a name that includes 'data_name' and 'result_index'.
+    """
+    grouped = df.groupby(sequence_col)[cluster_col]
+    
+    cluster_counts = []
+    for _, labels in grouped:
+        unique_clusters = labels.nunique()
+        cluster_counts.append(unique_clusters)
+
+    plt.figure()
+    plt.hist(cluster_counts, bins=range(1, max(cluster_counts)+2), align='left', rwidth=0.8)
+    plt.xlabel('Number of distinct clusters')
+    plt.ylabel('Number of sequences')
+    plt.title(f'Histogram of distinct cluster counts per {sequence_col}')
+    plt.xticks(range(1, max(cluster_counts)+1))
+    plt.tight_layout()
+
+    # Ensure the images directory exists
+    images_dir = "/cmnfs/home/students/m.celimli/clustering/deduplication_thesis/results/images"
+    os.makedirs(images_dir, exist_ok=True)
+
+    # Build the output plot path
+    output_plot_path = os.path.join(
+        images_dir,
+        f"distinct_cluster_counts_{data_name}_{result_index}.png"
+    )
+
+    # Save the figure
+    plt.savefig(output_plot_path)
+    plt.close()
+
+
 
 def plot_dominant_cluster_fraction(
     df, 
@@ -148,10 +233,10 @@ def process_json_file(json_path, result_index, output_dict):
     It then appends the result to output_dict, including saving the
     JSON file name.
     """
-    logging.info(f"Processing JSON file: {json_path}")
+    logging.info(f"Processing pickle file: {json_path}")
 
-    with open(json_path, 'r') as f:
-        file_content = json.load(f)
+    with open(json_path, 'rb') as f:
+        file_content = pickle.load(f)
 
     # Save the JSON file name for reference.
     json_filename = os.path.basename(json_path)
@@ -216,10 +301,20 @@ def process_json_file(json_path, result_index, output_dict):
     )
     logging.info(f"Saved dominant-cluster-fraction plot for: {plot_data_name}")
 
+    plot_cluster_counts_per_sequence(
+        data_df,
+        data_name=plot_data_name,
+        result_index=result_index,
+        sequence_col='modified_sequence',
+        cluster_col='cluster_label'
+    )
+
+    logging.info(f"Saved distinct-cluster-counts plot for: {plot_data_name}")
+
     # Store results in output_dict, including the JSON file name.
     result_key = f"result-{result_index}"
     output_dict[result_key] = {
-        "json_file": json_filename,
+        "pkl_file": json_filename,
         "data": data_name,
         "clustering_alg": clustering_alg,
         "args": args,

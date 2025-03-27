@@ -37,16 +37,16 @@ def main():
     result = pipeline.run_umap_dbscan(data_array)
     
     # Append extra columns for evaluation.
-    result["raw_file"] = eval_info["raw_file"].tolist()
-    result["scan_number"] = eval_info["scan_number"].tolist()
-    result["duplicate_id"] = eval_info["duplicate_id"].tolist()
+    # result["raw_file"] = eval_info["raw_file"].tolist()
+    # result["scan_number"] = eval_info["scan_number"].tolist()
+    # result["duplicate_id"] = eval_info["duplicate_id"].tolist()
 
     filename = config['data']['filename']
     filename_parts = filename.split('/')
     last_filename_part = filename_parts[-1].split('.')[0]
 
     # Save results to file
-    pipeline.save_results(result, f"results/umap_dbscan_{last_filename_part}.json")
+    pipeline.save_results(result, f"results/umap_dbscan_{last_filename_part}.pkl")
     logging.info(f"Result saved to umap_dbscan_{last_filename_part}.json")
     
     # --- Evaluation ---

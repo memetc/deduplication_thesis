@@ -2,6 +2,7 @@
 import os
 import logging
 import json
+import pickle
 import traceback
 import numpy as np
 import time
@@ -37,23 +38,23 @@ def main():
     pipeline = ClusteringPipeline(config)
     # Make sure your ClusteringPipeline class has this method implemented:
     #    run_umap_hdbscan_with_subclustering(data)
-    result = pipeline.run_umap_hdbscan_with_subclustering_loop(data_array)
+    result = pipeline.run_umap_hdbscan_with_subclustering(data_array)
     
     # If 'final_labels' is where your clustering IDs reside, but you want the rest of the
     # script (evaluation, saving) to treat them as "labels", map it here:
     result["labels"] = result["final_labels"]
     
     # Append extra columns for evaluation.
-    result["raw_file"] = eval_info["raw_file"].tolist()
-    result["scan_number"] = eval_info["scan_number"].tolist()
-    result["duplicate_id"] = eval_info["duplicate_id"].tolist()
+    # result["raw_file"] = eval_info["raw_file"].tolist()
+    # result["scan_number"] = eval_info["scan_number"].tolist()
+    # result["duplicate_id"] = eval_info["duplicate_id"].tolist()
 
     filename = config['data']['filename']
     filename_parts = filename.split('/')
     last_filename_part = filename_parts[-1].split('.')[0]
 
     # Save results to file
-    out_filename = f"results/umap_hdbscan_subclustering_loop_{last_filename_part}_{int(time.time())}.json"
+    out_filename = f"results/umap_hdbscan_subclustering_{last_filename_part}_{int(time.time())}.pkl"
     pipeline.save_results(result, out_filename)
     logging.info(f"Result saved to {out_filename}")
     
